@@ -1,0 +1,128 @@
+{
+  "extensions": [
+    {
+      "Extension": ".txt",
+      "Friendly Name": "Text File"
+    },
+    {
+      "Extension": ".EXE",
+      "Friendly Name": "Executable File"
+    },
+    {
+      "Extension": ".MSI",
+      "Friendly Name": "Windows Installer Package"
+    },
+    {
+      "Extension": ".DOC",
+      "Friendly Name": "Microsoft Word Document"
+    },
+    {
+      "Extension": ".DOCX",
+      "Friendly Name": "Microsoft Word Open XML Document"
+    },
+    {
+      "Extension": ".XLS",
+      "Friendly Name": "Microsoft Excel Spreadsheet"
+    },
+    {
+      "Extension": ".XLSX",
+      "Friendly Name": "Microsoft Excel Open XML Spreadsheet"
+    },
+    {
+      "Extension": ".PPT",
+      "Friendly Name": "Microsoft PowerPoint Presentation"
+    },
+    {
+      "Extension": ".PPTX",
+      "Friendly Name": "Microsoft PowerPoint Open XML Presentation"
+    },
+    {
+      "Extension": ".PUB",
+      "Friendly Name": "Microsoft Publisher Document"
+    },
+    {
+      "Extension": ".ACCDB",
+      "Friendly Name": "Microsoft Access Database"
+    },
+    {
+      "Extension": ".MDB",
+      "Friendly Name": "Microsoft Access Database"
+    },
+    {
+      "Extension": ".MD",
+      "Friendly Name": "Markdown Document"
+    },
+    {
+      "Extension": ".JPG",
+      "Friendly Name": "Images"
+    },
+    {
+      "Extension": ".PNG",
+      "Friendly Name": "Images"
+    },
+    {
+      "Extension": ".GIF",
+      "Friendly Name": "Images"
+    },
+    {
+      "Extension": ".WEBP",
+      "Friendly Name": "Images"
+    },
+    {
+      "Extension": ".BMP",
+      "Friendly Name": "Images"
+    },
+    {
+      "Extension": ".SVG",
+      "Friendly Name": "Professional Images"
+    },
+    {
+      "Extension": ".ICO",
+      "Friendly Name": "Professional Images"
+    },
+    {
+      "Extension": ".PDF",
+      "Friendly Name": "PDF Documents"
+    },
+    {
+      "Extension": ".MP3",
+      "Friendly Name": "Audio Files"
+    },
+    {
+      "Extension": ".MP4",
+      "Friendly Name": "Video Files"
+    },
+    {
+      "Extension": ".ZIP",
+      "Friendly Name": "Compressed Files"
+    },
+    {
+      "Extension": ".RAR",
+      "Friendly Name": "Compressed Files"
+    },
+    {
+      "Extension": ".TXT",
+      "Friendly Name": "Text Files"
+    },
+    {
+      "Extension": ".PS1",
+      "Friendly Name": "PowerShell Script"
+    },
+    {
+      "Extension": ".PSM1",
+      "Friendly Name": "PowerShell Module"
+    },
+    {
+      "Extension": ".BAT",
+      "Friendly Name": "Batch File"
+    },
+    {
+      "Extension": ".CMD",
+      "Friendly Name": "Command Script"
+    },
+    {
+      "Extension": ".TORRENT",
+      "Friendly Name": "Torrent File"
+    }
+  ]
+}
