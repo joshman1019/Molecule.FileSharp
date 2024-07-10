@@ -1,128 +1,128 @@
 {
-  "extensions": [
+  "Extensions": [
     {
-      "Extension": ".txt",
-      "Friendly Name": "Text File"
+      "Extension": "TXT",
+      "ProductName": "Text File"
     },
     {
-      "Extension": ".EXE",
-      "Friendly Name": "Executable File"
+      "Extension": "EXE",
+      "ProductName": "Executable File"
     },
     {
-      "Extension": ".MSI",
-      "Friendly Name": "Windows Installer Package"
+      "Extension": "MSI",
+      "ProductName": "Windows Installer Package"
     },
     {
-      "Extension": ".DOC",
-      "Friendly Name": "Microsoft Word Document"
+      "Extension": "DOC",
+      "ProductName": "Microsoft Word Document"
     },
     {
-      "Extension": ".DOCX",
-      "Friendly Name": "Microsoft Word Open XML Document"
+      "Extension": "DOCX",
+      "ProductName": "Microsoft Word Open XML Document"
     },
     {
-      "Extension": ".XLS",
-      "Friendly Name": "Microsoft Excel Spreadsheet"
+      "Extension": "XLS",
+      "ProductName": "Microsoft Excel Spreadsheet"
     },
     {
-      "Extension": ".XLSX",
-      "Friendly Name": "Microsoft Excel Open XML Spreadsheet"
+      "Extension": "XLSX",
+      "ProductName": "Microsoft Excel Open XML Spreadsheet"
     },
     {
-      "Extension": ".PPT",
-      "Friendly Name": "Microsoft PowerPoint Presentation"
+      "Extension": "PPT",
+      "ProductName": "Microsoft PowerPoint Presentation"
     },
     {
-      "Extension": ".PPTX",
-      "Friendly Name": "Microsoft PowerPoint Open XML Presentation"
+      "Extension": "PPTX",
+      "ProductName": "Microsoft PowerPoint Open XML Presentation"
     },
     {
-      "Extension": ".PUB",
-      "Friendly Name": "Microsoft Publisher Document"
+      "Extension": "PUB",
+      "ProductName": "Microsoft Publisher Document"
     },
     {
-      "Extension": ".ACCDB",
-      "Friendly Name": "Microsoft Access Database"
+      "Extension": "ACCDB",
+      "ProductName": "Microsoft Access Database"
     },
     {
-      "Extension": ".MDB",
-      "Friendly Name": "Microsoft Access Database"
+      "Extension": "MDB",
+      "ProductName": "Microsoft Access Database"
     },
     {
-      "Extension": ".MD",
-      "Friendly Name": "Markdown Document"
+      "Extension": "MD",
+      "ProductName": "Markdown Document"
     },
     {
-      "Extension": ".JPG",
-      "Friendly Name": "Images"
+      "Extension": "JPG",
+      "ProductName": "Images"
     },
     {
-      "Extension": ".PNG",
-      "Friendly Name": "Images"
+      "Extension": "PNG",
+      "ProductName": "Images"
     },
     {
-      "Extension": ".GIF",
-      "Friendly Name": "Images"
+      "Extension": "GIF",
+      "ProductName": "Images"
     },
     {
-      "Extension": ".WEBP",
-      "Friendly Name": "Images"
+      "Extension": "WEBP",
+      "ProductName": "Images"
     },
     {
-      "Extension": ".BMP",
-      "Friendly Name": "Images"
+      "Extension": "BMP",
+      "ProductName": "Images"
     },
     {
-      "Extension": ".SVG",
-      "Friendly Name": "Professional Images"
+      "Extension": "SVG",
+      "ProductName": "Professional Images"
     },
     {
-      "Extension": ".ICO",
-      "Friendly Name": "Professional Images"
+      "Extension": "ICO",
+      "ProductName": "Professional Images"
     },
     {
-      "Extension": ".PDF",
-      "Friendly Name": "PDF Documents"
+      "Extension": "PDF",
+      "ProductName": "PDF Documents"
     },
     {
-      "Extension": ".MP3",
-      "Friendly Name": "Audio Files"
+      "Extension": "MP3",
+      "ProductName": "Audio Files"
     },
     {
-      "Extension": ".MP4",
-      "Friendly Name": "Video Files"
+      "Extension": "MP4",
+      "ProductName": "Video Files"
     },
     {
-      "Extension": ".ZIP",
-      "Friendly Name": "Compressed Files"
+      "Extension": "ZIP",
+      "ProductName": "Compressed Files"
     },
     {
-      "Extension": ".RAR",
-      "Friendly Name": "Compressed Files"
+      "Extension": "RAR",
+      "ProductName": "Compressed Files"
     },
     {
-      "Extension": ".TXT",
-      "Friendly Name": "Text Files"
+      "Extension": "TXT",
+      "ProductName": "Text Files"
     },
     {
-      "Extension": ".PS1",
-      "Friendly Name": "PowerShell Script"
+      "Extension": "PS1",
+      "ProductName": "PowerShell Script"
     },
     {
-      "Extension": ".PSM1",
-      "Friendly Name": "PowerShell Module"
+      "Extension": "PSM1",
+      "ProductName": "PowerShell Module"
     },
     {
-      "Extension": ".BAT",
-      "Friendly Name": "Batch File"
+      "Extension": "BAT",
+      "ProductName": "Batch File"
     },
     {
-      "Extension": ".CMD",
-      "Friendly Name": "Command Script"
+      "Extension": "CMD",
+      "ProductName": "Command Script"
     },
     {
-      "Extension": ".TORRENT",
-      "Friendly Name": "Torrent File"
+      "Extension": "TORRENT",
+      "ProductName": "Torrent File"
     }
   ]
 }

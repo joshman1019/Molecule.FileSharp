@@ -1,12 +1,7 @@
 ﻿module ExtensionData
+
 open ConfigurationRetrieval
 open System
-
-/// <summary>
-/// Table of common file extensions and their corresponding product or service names.
-/// </summary>
-let public ProductTable =
-    GetConfigurationExtensions()
 
 /// <summary>
 /// Returns the product or service name for a given file extension, or the extension itself if not found.
@@ -14,7 +9,7 @@ let public ProductTable =
 /// </summary>
 /// <param name="normalizedFileExtension"></param>
 let public ReturnProductDirectoryName (normalizedFileExtension: string) = 
-    ProductTable
+    GetConfigurationExtensions
     |> List.tryFind (fun (item) -> item.Extension.Equals(normalizedFileExtension, StringComparison.OrdinalIgnoreCase))
     |> Option.map (fun (item) -> item.ProductName)
     |> Option.defaultValue normalizedFileExtension
