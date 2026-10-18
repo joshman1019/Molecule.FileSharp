@@ -1,123 +1,102 @@
-﻿module DirectoryAndFileFunctions
+module DirectoryAndFileFunctions
 
 open System
+open System.IO
+open System.Collections.Generic
+open ExtensionData
 
-/// <summary>
-/// Creates a directory in the specified parent directory
-/// </summary>
-let public DirectoryCreator (parentDirectory:string, directoryName:string) =
-    let directoryPath = IO.Path.Combine(parentDirectory, directoryName)
-    IO.Directory.CreateDirectory(directoryPath) |> ignore
+let IsLink (path: string) =
+    File.GetAttributes(path).HasFlag(FileAttributes.ReparsePoint)
+    || not (isNull (FileInfo(path).LinkTarget))
 
-/// <summary>
-/// Moves a file from one location to another
-/// </summary>
-/// <param name="inputFilePath"></param>
-/// <param name="outputFilePath"></param>
-let public FileMover (inputFilePath) (outputFilePath) =
-    match IO.File.Exists(outputFilePath) with
-    | true ->
-        let newOutputFilePath = IO.Path.Combine(IO.Path.GetDirectoryName(outputFilePath), $"Copy_{IO.Path.GetFileName(outputFilePath)}")
-        IO.File.Move(inputFilePath, newOutputFilePath)
-    | false ->
-        IO.File.Move(inputFilePath, outputFilePath)
+// Inspect every ancestor, including the root, rather than only the final component.
+let EnsureNoLinks (path: string) =
+    let rec inspect (directory: DirectoryInfo) =
+        if not (isNull directory) then
+            if IsLink directory.FullName then
+                invalidArg "path" $"Linked directories are not supported: {directory.FullName}"
+            inspect directory.Parent
+    inspect (DirectoryInfo path)
 
-/// <summary>
-/// Retrieves the file name from a file path 
-/// </summary>
-/// <param name="inputFilePath"></param>
-let public GetFileName (inputFilePath:string) =
-    IO.Path.GetFileName(inputFilePath)
+let NormalizeRoot (path: string) =
+    if String.IsNullOrWhiteSpace path then invalidArg "path" "A directory path is required."
+    let root = Path.GetFullPath path |> Path.TrimEndingDirectorySeparator
+    if not (Directory.Exists root) then invalidArg "path" "The directory does not exist."
+    EnsureNoLinks root
+    let app = Path.TrimEndingDirectorySeparator AppContext.BaseDirectory
+    let comparison = if OperatingSystem.IsWindows() then StringComparison.OrdinalIgnoreCase else StringComparison.Ordinal
+    if root.Equals(app, comparison) then invalidArg "path" "The application directory cannot be organized."
+    root
 
-/// <summary>
-/// Retrieves a file extension from a file path 
-/// </summary>
-/// <param name="inputFilePath"></param>
-let public GetFileExtension (inputFilePath:string) =
-    IO.Path.GetExtension(inputFilePath)
+let private occupied path =
+    File.Exists path || Directory.Exists path || not (isNull (FileInfo(path).LinkTarget))
 
-/// <summary>
-/// Retrieves a normalized file extension from a file path
-/// NOTE: Normalized indicates that all dots are removed and
-/// all characters are uppercased
-/// </summary>
-/// <param name="inputFilePath"></param>
-let public GetNormalizedFileExtension (inputFilePath:string) =
-    IO.Path.GetExtension(inputFilePath).TrimStart('.').ToUpper()
+let private availablePath (reserved: HashSet<string>) (destination: string) =
+    let directory = Path.GetDirectoryName destination
+    let name = Path.GetFileNameWithoutExtension destination
+    let extension = Path.GetExtension destination
+    let mutable candidate = destination
+    let mutable suffix = 0
+    while occupied candidate || reserved.Contains candidate do
+        suffix <- suffix + 1
+        candidate <- Path.Combine(directory, $"{name} ({suffix}){extension}")
+    reserved.Add candidate |> ignore
+    candidate
 
-/// <summary>
-/// Similar to System.IO.Path.Combine, but functional
-/// </summary>
-/// <param name="paths"></param>
-let public BuildPath ([<ParamArray>]paths: string[]) =
-    IO.Path.Combine(paths)
+let Organize root extension (mappings: Dictionary<string, string>) dryRun report =
+    let root = NormalizeRoot root
+    if not (ExtensionIsValid extension) then invalidArg "extension" "Use 'all' or a dotted extension such as .txt."
+    // Snapshot before creating directories or moving files.
+    let files = Directory.GetFiles root |> Array.sort
+    let reserved = HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    let mutable errors = 0
+    for source in files do
+        if extension.Equals("all", StringComparison.OrdinalIgnoreCase)
+           || Path.GetExtension(source).Equals(extension, StringComparison.OrdinalIgnoreCase) then
+            try
+                if IsLink source then report $"Skipped link: {source}"
+                else
+                    let product = ReturnProductDirectoryName mappings source
+                    if not (ConfigurationRetrieval.IsSafeDirectoryName product) then
+                        invalidArg "configuration" $"Unsafe destination: {product}"
+                    let directory = Path.Combine(root, product)
+                    if occupied directory && (IsLink directory || not (Directory.Exists directory)) then
+                        invalidArg "destination" $"Destination must be an ordinary directory: {directory}"
+                    let destination = availablePath reserved (Path.Combine(directory, Path.GetFileName source))
+                    if dryRun then report $"Would move: {source} -> {destination}"
+                    else
+                        Directory.CreateDirectory directory |> ignore
+                        EnsureNoLinks directory
+                        // Never overwrite, including if another process creates a file after planning.
+                        File.Move(source, destination, false)
+                        report $"Moved: {source} -> {destination}"
+            with
+            | :? IOException as ex -> errors <- errors + 1; report $"Error: {source}: {ex.Message}"
+            | :? UnauthorizedAccessException as ex -> errors <- errors + 1; report $"Error: {source}: {ex.Message}"
+            | :? ArgumentException as ex -> errors <- errors + 1; report $"Error: {source}: {ex.Message}"
+    errors
 
-/// <summary>
-/// Retrieve all files from a directory with a specific extension
-/// </summary>
-/// <param name="directoryPath"></param>
-/// <param name="extension"></param>
-let public GetAllFilesWithExtension (directoryPath:string, extension:string) =
-    System.IO.Directory.GetFiles(directoryPath, $"*{extension}")
-
-/// <summary>
-/// Retrieve all files from a directory path 
-/// </summary>
-/// <param name="directoryPath"></param>
-let public GetAllFiles (directoryPath:string) =
-    System.IO.Directory.GetFiles(directoryPath)
-
-/// <summary>
-/// Retrieve all directories from a directory path 
-/// </summary>
-/// <param name="directoryPath"></param>
-let public GetAllDirectories (directoryPath:string) =
-    System.IO.Directory.GetDirectories(directoryPath)
-
-/// <summary>
-/// Retrieve a count of all files in a directory
-/// </summary>
-/// <param name="directoryPath"></param>
-let public GetFileCount (directoryPath:string) =
-    System.IO.Directory.GetFiles(directoryPath).Length
-
-/// <summary>
-/// Retrieve a count of all directories within another directory
-/// </summary>
-/// <param name="directoryPath"></param>
-let public GetInternalDirectoryCount (directoryPath:string) =
-    System.IO.Directory.GetDirectories(directoryPath).Length
-
-/// <summary>
-/// Delete a directory
-/// </summary>
-/// <param name="directoryPath"></param>
-let public DeleteDirectory (directoryPath:string) =
-    System.IO.Directory.Delete(directoryPath, false)
-    printfn $"Deleted directory {directoryPath}"
-
-/// <summary>
-/// Deletes a directory and all of its contents, including subdirectories
-/// </summary>
-/// <param name="directoryPath"></param>
-let public DeleteDirectoryRecursive (directoryPath:string) =
-    System.IO.Directory.Delete(directoryPath, true)
-    printfn $"Deleted directory {directoryPath}"
-
-/// <summary>
-/// Removes all empty directories from a root directory
-/// </summary>
-/// <param name="rootDirectoryPath"></param>
-let rec public CleanDirectories (rootDirectoryPath:string) =
-    let directories = System.IO.Directory.GetDirectories(rootDirectoryPath)
-    for directory in directories do
-        if GetInternalDirectoryCount directory > 0 then
-            let internalDirectories = GetAllDirectories(directory)
-            for internalDirectory in internalDirectories do
-                CleanDirectories internalDirectory
-        let fileCount = GetFileCount directory
-        let newDirectoryCount = GetInternalDirectoryCount directory
-        if newDirectoryCount = 0 then
-            match fileCount with
-            | 0 -> DeleteDirectory directory
-            | _ -> printfn $"Directory {directory} is not empty. The directory actually contains {fileCount} files. Skipping deletion"
+let CleanDirectories root dryRun report =
+    let root = NormalizeRoot root
+    let mutable errors = 0
+    // Iterative post-order traversal avoids stack overflow on deep trees.
+    let pending = Stack<string * bool>()
+    pending.Push(root, false)
+    while pending.Count > 0 do
+        let directory, visited = pending.Pop()
+        try
+            if not (IsLink directory) then
+                if visited then
+                    if directory <> root && (Directory.EnumerateFileSystemEntries(directory) |> Seq.isEmpty) then
+                        if dryRun then report $"Would delete empty directory: {directory}"
+                        else
+                            Directory.Delete(directory, false)
+                            report $"Deleted empty directory: {directory}"
+                else
+                    pending.Push(directory, true)
+                    for child in Directory.GetDirectories directory do
+                        pending.Push(child, false)
+        with
+        | :? IOException as ex -> errors <- errors + 1; report $"Error: {directory}: {ex.Message}"
+        | :? UnauthorizedAccessException as ex -> errors <- errors + 1; report $"Error: {directory}: {ex.Message}"
+    errors
