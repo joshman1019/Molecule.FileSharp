@@ -1,78 +1,63 @@
-﻿open System; 
+module FileSharp.Program
+
+open System
+open System.IO
+open System.Text.Json
+open ConfigurationRetrieval
 open DirectoryAndFileFunctions
-open ExtensionData
 
-// Provide a welcome message to the user and prompt for the path to organize files
-printfn "Welcome to FileSharp"
-printfn "Enter the path where you would like to organize files"
-let userPath = Console.ReadLine()
+type Options = { Path: string; Extension: string; Clean: bool; DryRun: bool }
 
-// If the path is the same as the applicaiton path, exit the application
-if userPath = System.AppDomain.CurrentDomain.BaseDirectory then
-    printfn "The path you entered is the same as the application path. Exiting."
-    Environment.Exit(1)
+let usage = """FileSharp - organize files into extension-based folders
+Usage: FileSharp <directory> [--extension .txt|all] [--dry-run] [--clean-empty]
+       FileSharp --help
+With no arguments, prompts for input. Only top-level files are moved.
+--clean-empty recursively removes empty directories; links are skipped.
+Exit codes: 0 success, 1 operational failure, 2 invalid input/configuration."""
 
-// Verify the path is valid
-match IO.Directory.Exists(userPath) with
-| true -> printfn $"The path {userPath} is verified as valid."
-| false ->
-    printfn "Invalid Path"
-    Environment.Exit(1)
+let parseArgs (args: string array) =
+    let rec parse options remaining =
+        match remaining with
+        | [] -> options
+        | "--extension" :: value :: tail when not (value.StartsWith("--")) -> parse { options with Extension = value } tail
+        | "--dry-run" :: tail -> parse { options with DryRun = true } tail
+        | "--clean-empty" :: tail -> parse { options with Clean = true } tail
+        | value :: tail when not (value.StartsWith("--")) && options.Path = "" -> parse { options with Path = value } tail
+        | value :: _ -> invalidArg "arguments" $"Unexpected or incomplete argument: {value}"
+    let options = parse { Path = ""; Extension = "all"; Clean = false; DryRun = false } (List.ofArray args)
+    if String.IsNullOrWhiteSpace options.Path then invalidArg "arguments" "A directory path is required."
+    options
 
-// Prompt the user for the file extension to organize
-printfn "Enter the extension of the files you would like to organize, otherwise enter 'all' to organize all files"
-let extension = Console.ReadLine()
+let prompt message =
+    printfn "%s" message
+    match Console.ReadLine() with
+    | null -> invalidArg "input" "Input ended before all questions were answered."
+    | value -> value.Trim()
 
-// Prompt the user if they would like to delete empty directories after organizing files
-printfn "Would you like to delete empty directories after organizing files? (Y/N)"
-let deleteEmpties = 
-    match Console.ReadKey().KeyChar with
-    | 'Y'
-    | 'y' ->
-        printfn "\nDeleting empty directories after organizing files"
-        true
-    | _ -> 
-        printfn "\nNot deleting empty directories after organizing files"
-        false
-
-// Message to the user to indicate the files are being organized (with or without specific extension)
-match extension with 
-| "all" -> printfn "Organizing all files"
-| _ -> printfn $"Organizing files with the extension: {extension}"
-
-// Validate the extension
-match ExtensionIsValid extension with
-| true -> printfn "The extension was validated or ALL files were selected"
-| false -> 
-    printfn "Invalid extension"
-    Environment.Exit(1)
-
-// Get the files to organize
-let files =
-    match extension with
-    | "all" -> GetAllFiles userPath
-    | _ -> GetAllFilesWithExtension (userPath, extension)
-
-// Organize the files
-match files.Length with
-| 0 -> 
-    printfn "No files found. Nothing to organize"
-| _ -> 
-    for file in files do
-        let filename = GetFileName file
-        let fileExtension = GetNormalizedFileExtension file 
-        let finalProductDirectoryName = ReturnProductDirectoryName fileExtension
-        DirectoryCreator (userPath, finalProductDirectoryName) |> ignore
-        let outputFilePath = BuildPath [|userPath; finalProductDirectoryName; filename|]
-        FileMover file outputFilePath |> ignore
-        printfn $"Moved {filename} to {ReturnProductDirectoryName}"
-
-// Clean directories if the user selected to do so
-if deleteEmpties then
-    printfn "Cleaning directories"
-    CleanDirectories userPath
-    printfn "Cleaning complete"
-    printfn "Organizing complete"
-else
-    printfn "Skipping directory cleaning"
-    printfn "Organizing complete"
+[<EntryPoint>]
+let main args =
+    try
+        if args = [| "--help" |] || args = [| "-h" |] then
+            printfn "%s" usage
+            0
+        else
+            let options =
+                if args.Length = 0 then
+                    let path = prompt "Enter the directory to organize:"
+                    let extension = prompt "Enter an extension (such as .txt) or all:"
+                    let clean = prompt "Delete empty directories recursively? (y/N)"
+                    { Path = path; Extension = extension; Clean = clean.Equals("y", StringComparison.OrdinalIgnoreCase); DryRun = false }
+                else parseArgs args
+            let root = NormalizeRoot options.Path
+            if not (ExtensionData.ExtensionIsValid options.Extension) then
+                invalidArg "extension" "Use 'all' or a dotted extension such as .txt."
+            let mappings = LoadExtensions (Path.Combine(AppContext.BaseDirectory, "extensions.json"))
+            let mutable errors = Organize root options.Extension mappings options.DryRun (printfn "%s")
+            if options.Clean then errors <- errors + CleanDirectories root options.DryRun (printfn "%s")
+            printfn "%s" (if options.DryRun then "Preview complete. No changes made." else "Organizing complete.")
+            if errors = 0 then 0 else 1
+    with
+    | :? ArgumentException as ex -> eprintfn "Error: %s" ex.Message; 2
+    | :? JsonException as ex -> eprintfn "Invalid configuration: %s" ex.Message; 2
+    | :? IOException as ex -> eprintfn "File system error: %s" ex.Message; 1
+    | :? UnauthorizedAccessException as ex -> eprintfn "Access denied: %s" ex.Message; 1
