@@ -1,0 +1,22 @@
+name: Build and regression tests
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet build FileSharp.sln --configuration Release
+      - run: dotnet run --project FileSharp.Tests --configuration Release --no-build
+      - run: dotnet publish FileSharp/FileSharp.fsproj --configuration Release --no-restore --output artifacts/publish
+      - run: dotnet artifacts/publish/FileSharp.dll --help

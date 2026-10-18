@@ -5,6 +5,8 @@ VisualStudioVersion = 17.9.34728.123
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FileSharp", "FileSharp\FileSharp.fsproj", "{18747A9C-3A37-4455-809B-6742C8BB5847}"
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FileSharp.Tests", "FileSharp.Tests\FileSharp.Tests.fsproj", "{28B57362-9158-4D0D-8379-B8329CC0D148}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{18747A9C-3A37-4455-809B-6742C8BB5847}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{18747A9C-3A37-4455-809B-6742C8BB5847}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{18747A9C-3A37-4455-809B-6742C8BB5847}.Release|Any CPU.Build.0 = Release|Any CPU
+		{28B57362-9158-4D0D-8379-B8329CC0D148}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{28B57362-9158-4D0D-8379-B8329CC0D148}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{28B57362-9158-4D0D-8379-B8329CC0D148}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{28B57362-9158-4D0D-8379-B8329CC0D148}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
