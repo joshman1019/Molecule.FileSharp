@@ -29,7 +29,7 @@ On Windows, use `artifacts\tools\filesharp.exe`. The examples below use
 
 | Command | Purpose | Example |
 | --- | --- | --- |
-| `organize` | Group files into mapped folders | `filesharp organize ./downloads -e .pdf -n` |
+| `organize` | Group files into mapped folders | `filesharp organize ./downloads -e .pdf,.txt -n` |
 | `delete` | Delete matching file types | `filesharp delete ./cache -e .tmp,.bak -r -n` |
 | `zip` | Collect selected files into one ZIP | `filesharp zip ./logs -e .txt,.log -r -o ./logs.zip` |
 | `compress` | Create an individual GZip copy per file | `filesharp compress ./logs -e .log --level smallest` |
@@ -51,12 +51,14 @@ final extension: `.txt` matches `NOTES.TXT`, but not `notes.atxt`. One-character
 extensions such as `.c` work. A `.tar.gz` file has final extension `.gz`.
 
 ```sh
+filesharp organize ./downloads -e .pdf,.txt
+filesharp organize ./downloads -e .pdf -e .txt
 filesharp list ./downloads -e .jpg,.png -e .webp
 filesharp zip ./downloads -e all -o ./backup.zip
 ```
 
 File tools default to top-level files; `-r` / `--recursive` includes descendants.
-`organize` accepts one extension (or `all`) and stays top-level. `clean-empty`
+`organize` accepts the same multi-extension filters and stays top-level. `clean-empty`
 always traverses directories and does not accept file filters. Other commands
 default to all files; `delete` requires an explicit selection, including `-e all`
 if that is intended. Invalid or inapplicable options produce an error.

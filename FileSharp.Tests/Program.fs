@@ -133,9 +133,37 @@ let tests = [
             [| "delete"; "." |]; [| "zip"; "." |]; [| "delete"; "."; "-e"; ".tmp," |]
             [| "delete"; "."; "-e"; "all,.tmp" |]; [| "list"; "."; "--yes" |]
             [| "list"; "."; "--level"; "optimal" |]; [| "compress"; "."; "--level"; "huge" |]
-            [| "organize"; "."; "-r" |]; [| "organize"; "."; "-e"; ".txt,.log" |]
+            [| "organize"; "."; "-r" |]; [| "organize"; "."; "-e"; "all,.txt" |]
             [| "clean-empty"; "."; "-e"; ".tmp" |]; [| "list"; "."; "-o"; "out.zip" |]
         ] do rejects (fun () -> FileSharp.Program.parseArgs args |> ignore)
+    "organize comma-separated extensions selects only exact requested types", fun () -> withDirectory (fun root ->
+        Directory.CreateDirectory(Path.Combine(root, "nested")) |> ignore
+        for name in [ "a.TXT"; "b.pdf"; "keep.log"; "suffix.atxt"; "LICENSE"; "nested/c.txt" ] do
+            File.WriteAllText(Path.Combine(root, name), name)
+        let code, output, error = runCli root [ "organize"; root; "-e"; ".txt,.PDF" ] ""
+        check (code = 0 && output.Contains("2 file(s) organized")) $"Multi-extension organize failed: {error}"
+        check (File.Exists(Path.Combine(root, "Text File", "a.TXT"))) "TXT selection missed"
+        check (File.Exists(Path.Combine(root, "PDF Documents", "b.pdf"))) "PDF selection missed"
+        for name in [ "keep.log"; "suffix.atxt"; "LICENSE"; "nested/c.txt" ] do
+            check (File.ReadAllText(Path.Combine(root, name)) = name) $"Changed unselected file: {name}")
+    "organize repeated extensions previews once and supports legacy syntax", fun () -> withDirectory (fun root ->
+        for name in [ "a.txt"; "b.pdf"; "keep.log" ] do File.WriteAllText(Path.Combine(root, name), name)
+        let args = [ root; "-e"; ".txt"; "--extension"; ".PDF"; "--extensions"; ".TXT" ]
+        let code, output, error = runCli root (args @ [ "--dry-run" ]) ""
+        check (code = 0 && output.Contains("2 file(s) organized")) $"Repeated filter preview failed: {error}"
+        check (Directory.GetFiles(root).Length = 3 && Directory.GetDirectories(root).Length = 0) "Preview changed filesystem"
+        let code, output, error = runCli root args ""
+        check (code = 0 && output.Contains("2 file(s) organized")) $"Legacy repeated filters failed: {error}"
+        check (File.Exists(Path.Combine(root, "Text File", "a.txt"))) "Repeated TXT filter missed"
+        check (File.Exists(Path.Combine(root, "PDF Documents", "b.pdf"))) "Repeated PDF filter missed"
+        check (File.Exists(Path.Combine(root, "keep.log"))) "Repeated filters moved unrelated file")
+    "organize unmatched filters leave files alone and default still selects all", fun () -> withDirectory (fun root ->
+        File.WriteAllText(Path.Combine(root, "a.txt"), "text")
+        let code, output, _ = runCli root [ "organize"; root; "-e"; ".pdf,.log" ] ""
+        check (code = 0 && output.Contains("0 file(s) organized")) "Unmatched filters failed"
+        check (File.Exists(Path.Combine(root, "a.txt"))) "Unmatched filter moved file"
+        let code, _, error = runCli root [ "organize"; root ] ""
+        check (code = 0 && File.Exists(Path.Combine(root, "Text File", "a.txt"))) $"Default selection regressed: {error}")
     "help system covers every command and stays plain when redirected", fun () -> withDirectory (fun root ->
         for name, _, _ in Cli.commands do
             let code, output, error = runCli root [ name; "--help" ] ""

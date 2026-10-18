@@ -81,8 +81,8 @@ let parseArgs (args: string array) =
         invalidArg "extensions" "Deletion requires an explicit --extensions selection (or all)."
     if options.Extensions.Length > 1 && (options.Extensions |> List.exists (fun e -> e.Equals("all", StringComparison.OrdinalIgnoreCase))) then
         invalidArg "extensions" "Use all by itself, without other extensions."
-    if options.Command = Organize && (options.Recursive || options.Extensions.Length > 1) then
-        invalidArg "arguments" "Organize supports one extension and top-level files only."
+    if options.Command = Organize && options.Recursive then
+        invalidArg "arguments" "Organize supports top-level files only."
     if options.Clean && options.Command <> Organize then invalidArg "arguments" "Use the clean-empty command for standalone cleanup."
     if options.Yes && options.Command <> Delete then invalidArg "arguments" "--yes applies only to delete."
     if options.Output.IsSome && options.Command <> Zip then invalidArg "arguments" "--output applies only to zip."
@@ -135,7 +135,7 @@ interactive organization. Exit codes: 0 success, 1 I/O failure, 2 invalid input.
         let details, examples =
             match command with
             | Organize ->
-                "Top-level files only. Select one extension or all.\n  --clean-empty          Also remove empty directories recursively", "filesharp organize ./downloads -e .pdf --dry-run"
+                "Top-level files only. Select comma-separated extensions, repeat -e, or use all.\nWithout -e, all file types are organized.\n  --clean-empty          Also remove empty directories recursively", "filesharp organize ./downloads -e .pdf,.txt --dry-run\n  filesharp organize ./downloads -e .pdf -e .txt"
             | Delete ->
                 "An explicit --extensions filter is required; use all to select every type.\nDeletion is permanent. A preview is shown before confirmation.\n  -y, --yes              Skip confirmation for scripts (not needed for dry-run)\nWithout --yes, redirected input is rejected. Cancellation makes no changes.", "filesharp delete ./cache -e .tmp,.bak -r --dry-run\n  filesharp delete ./cache -e .tmp,.bak -r --yes"
             | Zip ->

@@ -19,7 +19,7 @@ let prompt message =
 
 let private interactive () =
     let path = prompt "Enter the directory to organize:"
-    let extension = prompt "Enter an extension (such as .txt) or all:"
+    let extension = prompt "Enter extensions (such as .txt,.pdf) or all:"
     let clean = prompt "Delete empty directories recursively? (y/N)"
     parseArgs ([| path; "--extension"; extension |] |> fun args -> if clean.Equals("y", StringComparison.OrdinalIgnoreCase) then Array.append args [| "--clean-empty" |] else args)
 
@@ -38,12 +38,11 @@ let private run options =
         match options.Command with
         | Organize ->
             let mappings = ConfigurationRetrieval.LoadExtensions (Path.Combine(AppContext.BaseDirectory, "extensions.json"))
-            let extension = options.Extensions |> List.tryHead |> Option.defaultValue "all"
             let mutable count = 0
             let progress (message: string) =
                 if message.StartsWith("Moved:") || message.StartsWith("Would move:") then count <- count + 1
                 report message
-            let mutable errors = Organize root extension mappings options.DryRun progress
+            let mutable errors = OrganizeExtensions root options.Extensions mappings options.DryRun progress
             if options.Clean then errors <- errors + CleanDirectories root options.DryRun report
             errors, $"{count} file(s) organized."
         | CleanEmpty ->
