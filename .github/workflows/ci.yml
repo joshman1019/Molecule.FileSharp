@@ -20,3 +20,6 @@ jobs:
       - run: dotnet run --project FileSharp.Tests --configuration Release --no-build
       - run: dotnet publish FileSharp/FileSharp.fsproj --configuration Release --no-restore --output artifacts/publish
       - run: dotnet artifacts/publish/FileSharp.dll --help
+      - run: dotnet pack FileSharp/FileSharp.fsproj --configuration Release --no-build --output artifacts/packages
+      - run: dotnet tool install Molecule.FileSharp --version 1.1.0 --tool-path artifacts/tools --add-source artifacts/packages
+      - run: ./artifacts/tools/filesharp help zip

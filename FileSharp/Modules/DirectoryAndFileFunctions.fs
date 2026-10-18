@@ -43,16 +43,21 @@ let private availablePath (reserved: HashSet<string>) (destination: string) =
     reserved.Add candidate |> ignore
     candidate
 
-let Organize root extension (mappings: Dictionary<string, string>) dryRun report =
+let OrganizeExtensions root extensions (mappings: Dictionary<string, string>) dryRun report =
     let root = NormalizeRoot root
-    if not (ExtensionIsValid extension) then invalidArg "extension" "Use 'all' or a dotted extension such as .txt."
+    if extensions |> List.exists (ExtensionIsValid >> not) then
+        invalidArg "extensions" "Use 'all' or dotted extensions such as .txt and .log."
+    if List.length extensions > 1 && (extensions |> List.exists (fun extension -> extension.Equals("all", StringComparison.OrdinalIgnoreCase))) then
+        invalidArg "extensions" "Use all by itself, without other extensions."
     // Snapshot before creating directories or moving files.
     let files = Directory.GetFiles root |> Array.sort
     let reserved = HashSet<string>(StringComparer.OrdinalIgnoreCase)
     let mutable errors = 0
     for source in files do
-        if extension.Equals("all", StringComparison.OrdinalIgnoreCase)
-           || Path.GetExtension(source).Equals(extension, StringComparison.OrdinalIgnoreCase) then
+        if List.isEmpty extensions
+           || (extensions |> List.exists (fun extension ->
+               extension.Equals("all", StringComparison.OrdinalIgnoreCase)
+               || Path.GetExtension(source).Equals(extension, StringComparison.OrdinalIgnoreCase))) then
             try
                 if IsLink source then report $"Skipped link: {source}"
                 else
@@ -75,6 +80,10 @@ let Organize root extension (mappings: Dictionary<string, string>) dryRun report
             | :? UnauthorizedAccessException as ex -> errors <- errors + 1; report $"Error: {source}: {ex.Message}"
             | :? ArgumentException as ex -> errors <- errors + 1; report $"Error: {source}: {ex.Message}"
     errors
+
+// Preserve the single-extension entry point for existing callers.
+let Organize root extension mappings dryRun report =
+    OrganizeExtensions root [ extension ] mappings dryRun report
 
 let CleanDirectories root dryRun report =
     let root = NormalizeRoot root

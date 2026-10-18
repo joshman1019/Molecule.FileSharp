@@ -1,63 +1,150 @@
 # FileSharp
 
-FileSharp is an F# command-line file organizer for Windows, macOS, and Linux.
-It groups files from one directory into folders using the mappings in
-`extensions.json`. File selection is case-insensitive on every platform.
+A cross-platform F# CLI for organizing folders, cleaning up file types, archiving
+files, and finding wasted space. Runs on Windows, macOS, and Linux with .NET 10.
 
-Requires the .NET 10 SDK to build, or the .NET 10 runtime to run a published,
-framework-dependent build. The application uses only the runtime and FSharp.Core;
-no configuration packages are needed.
+## Get started
+
+Build and run with the .NET 10 SDK:
 
 ```sh
 dotnet build FileSharp.sln --configuration Release
-dotnet run --project FileSharp -- "/path/to/files" --dry-run
-dotnet run --project FileSharp -- "/path/to/files" --extension .txt
-dotnet run --project FileSharp -- "/path/to/files" --clean-empty
+dotnet run --project FileSharp -- help
+dotnet run --project FileSharp -- stats "/path/to/downloads" --recursive
 ```
 
-On Windows, pass a path such as `"C:\Users\you\Downloads"`. Quote paths that
-contain spaces. Run without arguments for interactive prompts, or use `--help`
-for usage. Both piped input and terminals are supported.
+Build a local .NET tool package and install it into this checkout:
 
-## Behavior and safeguards
+```sh
+dotnet pack FileSharp/FileSharp.fsproj --configuration Release --output artifacts/packages
+dotnet tool install Molecule.FileSharp --version 1.1.0 --tool-path artifacts/tools --add-source artifacts/packages
+./artifacts/tools/filesharp help
+```
 
-- Only files directly inside the selected directory are moved. Subdirectory
-  contents are left in place.
-- `--extension` accepts `all` (the default) or a dotted extension such as `.c`
-  or `.txt`. Matching ignores case and matches the entire final extension.
-- Existing destination files and directories are preserved. Conflicting files
-  receive numbered names such as `report (1).txt`, `report (2).txt`, and so on.
-  A move never overwrites an existing file, even if a conflict appears mid-run.
-- Unmapped extensions use an uppercase extension folder. Extensionless files go
-  into `No Extension`; extensions that cannot form portable folder names go into
-  `Other Files`.
-- `--dry-run` prints proposed moves and currently empty directories without
-  creating, moving, or deleting anything. Empty-parent predictions may differ
-  from a real cleanup because the preview does not mutate the tree.
-- `--clean-empty` opts into recursive empty-directory removal. Cleanup proceeds
-  from children to parents and never recursively deletes contents or removes the
-  selected root. Files and populated directories are retained.
-- File links are skipped. Directory symlinks, junctions, and reparse points are
-  never intentionally traversed. A selected root with a linked ancestor is
-  rejected; use its physical path (including on macOS, where `/tmp` is a link).
-  Linked destination directories are rejected.
-- The executable's own directory cannot be selected. Choose a separate data
-  directory. File-system failures are reported; independent moves continue.
-- Exit codes: `0` success (including a dry run), `1` file-system or per-file
+On Windows, use `artifacts\tools\filesharp.exe`. The examples below use
+`filesharp` for brevity; substitute the installed path or
+`dotnet run --project FileSharp --`. Quote paths containing spaces.
+
+## Commands
+
+| Command | Purpose | Example |
+| --- | --- | --- |
+| `organize` | Group files into mapped folders | `filesharp organize ./downloads -e .pdf,.txt -n` |
+| `delete` | Delete matching file types | `filesharp delete ./cache -e .tmp,.bak -r -n` |
+| `zip` | Collect selected files into one ZIP | `filesharp zip ./logs -e .txt,.log -r -o ./logs.zip` |
+| `compress` | Create an individual GZip copy per file | `filesharp compress ./logs -e .log --level smallest` |
+| `list` | List paths and sizes | `filesharp list ./downloads -e .zip,.pdf -r` |
+| `stats` | Show file counts and total size by extension | `filesharp stats ./downloads -r` |
+| `duplicates` | Find identical content without deleting it | `filesharp duplicates ./photos -r` |
+| `clean-empty` | Remove empty folders from children to parents | `filesharp clean-empty ./downloads -n` |
+
+Get command-specific instructions and examples with `filesharp help zip` or
+`filesharp zip --help`. Use `--version` for the version. With no arguments,
+FileSharp prompts for interactive organization. The original
+`filesharp <directory> [options]` organization syntax still works.
+
+### Select files
+
+Use `-e` / `--extensions` (or the original `--extension`) with a comma-separated
+list, repeated options, or `all`. Matching is case-insensitive and uses the exact
+final extension: `.txt` matches `NOTES.TXT`, but not `notes.atxt`. One-character
+extensions such as `.c` work. A `.tar.gz` file has final extension `.gz`.
+
+```sh
+filesharp organize ./downloads -e .pdf,.txt
+filesharp organize ./downloads -e .pdf -e .txt
+filesharp list ./downloads -e .jpg,.png -e .webp
+filesharp zip ./downloads -e all -o ./backup.zip
+```
+
+File tools default to top-level files; `-r` / `--recursive` includes descendants.
+`organize` accepts the same multi-extension filters and stays top-level. `clean-empty`
+always traverses directories and does not accept file filters. Other commands
+default to all files; `delete` requires an explicit selection, including `-e all`
+if that is intended. Invalid or inapplicable options produce an error.
+
+### Delete file types
+
+Preview first:
+
+```sh
+filesharp delete ./cache -e .tmp,.bak --recursive --dry-run
+filesharp delete ./cache -e .tmp,.bak --recursive
+```
+
+A real deletion lists the selected paths and asks you to type `DELETE`.
+Cancellation makes no changes. For scripts, pass `--yes`; redirected input
+cannot answer the deletion prompt. Deletion is permanent and only removes
+selected files, leaving directories in place. Files changed since the selection
+snapshot are reported as failures rather than deleted.
+
+### ZIP and GZip
+
+`zip` creates one archive with paths relative to the selected directory. This
+keeps equally named files in different subfolders distinct. `--output` is
+required, must end in `.zip`, and is relative to the current working directory.
+Its parent must already exist. File names must be portable across platforms;
+unsafe entry paths and entry names differing only in case are rejected.
+
+`compress` writes `file.ext.gz` beside each selected file. Files already ending
+in `.gz` are skipped. Both commands keep originals and reject existing output,
+including linked output paths. Use `--level fast`, `optimal` (the default), or
+`smallest` to trade speed for size. Already compressed data may grow.
+
+Archives are streamed with bounded buffers and written to temporary sibling
+files, then published only after success. ZIP aborts if the selection scan is
+incomplete or a source changes; an ordinary failure removes its temporary file.
+A process or machine crash can leave a `.filesharp-<id>.tmp` file. FileSharp
+never deletes originals after compression.
+
+### Inventory and duplicates
+
+`list` prints relative paths and sizes. `stats` groups case-insensitively by
+extension, largest total first. Sizes use binary units (KiB, MiB, GiB).
+`duplicates` first groups by byte length, then hashes candidates with SHA-256,
+showing identical-content groups and redundant bytes. These tools are read-only;
+duplicate detection never chooses files to delete.
+
+### Terminal output
+
+Output includes clear command headings, tables, per-file status, selected file
+counts and sizes, elapsed time, and a completion/error summary. Supported
+terminals use restrained colors. Redirected output is plain text; `NO_COLOR`,
+`TERM=dumb`, and `--no-color` also disable color. Errors go to standard error.
+Control characters in paths are escaped before display to prevent terminal
+escape sequences from filenames.
+
+## Safeguards and compatibility
+
+- `--dry-run` / `-n` previews changes without writing, moving, or deleting.
+  Cleanup shows currently empty folders; empty-parent predictions can differ
+  because a preview does not mutate the tree.
+- File links are skipped; linked directories, junctions, and reparse points are
+  never intentionally traversed. Roots with linked ancestors are rejected;
+  use the physical path (macOS `/tmp`, for example, is a link).
+- The executable's own directory cannot be selected. Use a separate data folder.
+- Organization preserves existing destinations using numbered names such as
+  `report (1).txt`. Unknown extensions use an uppercase folder name,
+  extensionless files use `No Extension`, and nonportable extensions use
+  `Other Files`. `organize --clean-empty` adds recursive empty-folder cleanup.
+- Empty-folder cleanup never removes the selected root, files, linked folders,
+  or populated folders. It only calls nonrecursive directory deletion.
+- Independent per-file operations continue after reported failures. ZIP requires
+  a complete scan. Exit codes: `0` success or cancellation, `1` operational
   failure, `2` invalid arguments, input, or configuration. Skipped links are
-  informational.
+  informational. An empty selection succeeds without creating an archive.
 
-Use this on directories you control. Link checks are best-effort checks using
-portable .NET APIs, not a security boundary against concurrent replacement of
-files or directories by another process. There is no transaction or undo;
-preview first and keep backups of valuable files.
+Use FileSharp on directories you control. Portable link and snapshot checks are
+best-effort checks, not a security boundary against concurrent replacement of
+files or directories. There is no transaction or undo. Preview changes and keep
+backups of valuable files. An error can leave earlier successful operations in
+place.
 
-## Configuration
+## Organization configuration
 
-`extensions.json` is loaded beside the executable, independently of the current
-working directory, and is included in build and publish output. Edit that copy
-to customize a deployed application. Every mapping must have a unique extension
-(case-insensitive, without a dot) and a single portable folder name:
+Only `organize` loads `extensions.json`. The configuration lives beside the
+executable and is included in build, publish, and tool-package output. Other
+maintenance commands do not depend on this file.
 
 ```json
 {
@@ -67,32 +154,31 @@ to customize a deployed application. Every mapping must have a unique extension
 }
 ```
 
-Extensions accept ASCII letters, digits, `_`, and `-`. Folder names cannot be
-empty, relative paths, Windows device names, or contain separators, control
-characters, or Windows-invalid characters. Leading/trailing whitespace and
-trailing dots are rejected. Invalid configuration is rejected before any moves.
+Extensions must be unique ignoring case, without a dot, and contain only ASCII
+letters, digits, `_`, or `-`. Product names must be single portable folder names:
+no relative paths, separators, control characters, Windows-invalid characters,
+Windows device names, leading/trailing whitespace, or trailing dots. Invalid
+configuration is rejected before organization begins.
 
-## Validation and publishing
+## Validate and publish
 
-The regression suite creates isolated disposable directories and exercises input,
-configuration, collisions, dry runs, recursive cleanup, and link handling:
+The dependency-light regression runner exercises the filesystem and real CLI,
+including compression round trips and deletion safeguards. `dotnet test` does
+not execute this runner. CI builds and runs it on Windows, macOS, and Linux.
+Windows link tests use junctions, without requiring developer mode.
 
 ```sh
 dotnet run --project FileSharp.Tests --configuration Release
 dotnet publish FileSharp/FileSharp.fsproj --configuration Release --output artifacts/publish
-dotnet artifacts/publish/FileSharp.dll --help
+dotnet artifacts/publish/FileSharp.dll help
 ```
 
-The tests are a dependency-light executable runner; `dotnet test` does not run
-this suite. CI runs the commands above on Windows, macOS, and Linux. Windows
-link tests use junctions so developer mode is not required.
-
-For a standalone executable, publish on a machine with the SDK using the target
-runtime identifier, for example:
+A framework-dependent publish requires the .NET 10 runtime on the destination.
+For standalone distribution, publish for the destination RID:
 
 ```sh
 dotnet publish FileSharp/FileSharp.fsproj --configuration Release --runtime linux-x64 --self-contained true --output artifacts/linux-x64
 ```
 
-Use the appropriate RID for the destination, such as `win-x64`, `osx-arm64`, or
-`linux-arm64`. Keep `extensions.json` alongside the published executable.
+Other examples include `win-x64`, `osx-arm64`, and `linux-arm64`. Keep
+`extensions.json` beside the published executable.
